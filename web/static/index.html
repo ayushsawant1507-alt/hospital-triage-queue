@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hospital / Emergency Triage Queue — Algorithmic Visualizer</title>
+  <meta name="description" content="Interactive analysis of algorithms web interface demonstrating hospital emergency triage queues, binary min-heaps, hybrid sorting algorithms, and discrete-event ER simulation.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="logo-badge">🏥</div>
+      <div>
+        <h1 class="brand-title">Emergency Triage Queue</h1>
+        <div class="brand-subtitle">Analysis of Algorithms Visual Platform • Python 3.11 Backend</div>
+      </div>
+    </div>
+
+    <div class="header-stats">
+      <div class="stat-chip" title="Patients waiting in min-heap">
+        <span>Waiting:</span>
+        <span class="val" id="queue-count">0</span>
+      </div>
+      <div class="stat-chip" title="Total operations tracked via Counter">
+        <span>Comps:</span>
+        <span class="val" id="global-comps">0</span>
+      </div>
+      <div class="stat-chip" title="Array writes / element moves tracked">
+        <span>Moves:</span>
+        <span class="val" id="global-moves">0</span>
+      </div>
+
+      <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Light / Dark theme">
+        <span id="theme-icon">☀️</span>
+        <span id="theme-label">Light Mode</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Navigation Bar -->
+  <nav class="nav-tabs" aria-label="Main Navigation">
+    <button class="tab-btn active" data-target="tab-heap" id="nav-btn-heap">
+      <span>🌳</span> Live Triage & Min-Heap
+    </button>
+    <button class="tab-btn" data-target="tab-sorting" id="nav-btn-sorting">
+      <span>⚡</span> Algorithm Sorting Arena
+    </button>
+    <button class="tab-btn" data-target="tab-search" id="nav-btn-search">
+      <span>🔍</span> Binary Search & Break-Even
+    </button>
+    <button class="tab-btn" data-target="tab-simulation" id="nav-btn-simulation">
+      <span>⏱️</span> ER Discrete Simulation
+    </button>
+  </nav>
+
+  <!-- Main Content Areas -->
+  <main class="main-content">
+
+    <!-- ===================================================================== -->
+    <!-- TAB 1: Live Triage & Min-Heap Visualizer -->
+    <!-- ===================================================================== -->
+    <section class="tab-pane active" id="tab-heap">
+      <div class="grid-sidebar">
+        <!-- Sidebar Controls -->
+        <div>
+          <!-- Next Patient Priority Card -->
+          <div class="glass-card" style="margin-bottom: 1.25rem; border-color: rgba(255, 59, 92, 0.4);">
+            <div class="card-header">
+              <span class="card-title">🚨 Next Up for Treatment (Peek O(1))</span>
+            </div>
+            <div id="next-patient-card">
+              <p style="color:var(--text-muted); font-size:0.85rem;">Loading queue...</p>
+            </div>
+          </div>
+
+          <!-- Admission Form -->
+          <div class="glass-card" style="margin-bottom: 1.25rem;">
+            <div class="card-header">
+              <span class="card-title">➕ Admit Patient (Insert O(log n))</span>
+            </div>
+            <form id="admit-form">
+              <div class="form-group">
+                <label class="form-label" for="patient-name">Patient Full Name</label>
+                <input class="form-input" id="patient-name" type="text" placeholder="e.g. John Doe" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="patient-severity">Clinical Urgency (Severity)</label>
+                <select class="form-select" id="patient-severity">
+                  <option value="1">1 - CRITICAL (Immediately Life Threatening)</option>
+                  <option value="2">2 - EMERGENT (High Risk Deterioration)</option>
+                  <option value="3" selected>3 - URGENT (Care within 30 min)</option>
+                  <option value="4">4 - LESS URGENT (Wait up to 60 min)</option>
+                  <option value="5">5 - NON-URGENT (Same day)</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" id="admit-btn" type="submit" style="width: 100%;">
+                Admit into Priority Queue
+              </button>
+            </form>
+          </div>
+
+          <!-- Condition Deterioration / Update Severity -->
+          <div class="glass-card" style="margin-bottom: 1.25rem;">
+            <div class="card-header">
+              <span class="card-title">⚠️ Dynamic Condition Change (O(log n))</span>
+            </div>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              Demonstrates O(1) hash index lookup + O(log n) sifting when patient deteriorates or stabilizes.
+            </p>
+            <div class="form-group">
+              <label class="form-label" for="deteriorate-select">Select Patient in Queue</label>
+              <select class="form-select" id="deteriorate-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="new-severity-select">New Severity Level</label>
+              <select class="form-select" id="new-severity-select">
+                <option value="1">1 - CRITICAL</option>
+                <option value="2">2 - EMERGENT</option>
+                <option value="3">3 - URGENT</option>
+                <option value="4">4 - LESS URGENT</option>
+                <option value="5">5 - NON-URGENT</option>
+              </select>
+            </div>
+            <button class="btn btn-secondary" id="deteriorate-btn" style="width: 100%;">
+              Update Urgency & Resift
+            </button>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="glass-card">
+            <div class="card-header">
+              <span class="card-title">⚡ Quick Queue Actions</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+              <button class="btn btn-danger" id="treat-btn">
+                <span>🩺</span> Treat Most Critical (Extract O(log n))
+              </button>
+              <button class="btn btn-secondary" id="quick-critical-btn">
+                <span>🚨</span> Inject Emergency Resuscitation
+              </button>
+              <button class="btn btn-secondary" id="reset-btn">
+                <span>🔄</span> Reset to Default Queue
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side: SVG Binary Tree & Array View -->
+        <div>
+          <!-- Binary Tree Canvas -->
+          <div class="glass-card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+              <div>
+                <span class="card-title">🌳 0-Indexed Binary Min-Heap Tree</span>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.2rem;">
+                  Root (index 0) is always the most critical patient. Ties broken FIFO by admission sequence.
+                </p>
+              </div>
+            </div>
+            <div class="heap-canvas-container">
+              <svg id="heap-svg"></svg>
+            </div>
+
+            <!-- Heap Physical Array View -->
+            <div style="margin-top: 1.25rem;">
+              <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem;">
+                Physical Memory Array: <code>arr[0..n-1]</code> (Left: 2i+1, Right: 2i+2, Parent: (i-1)//2)
+              </div>
+              <div class="heap-array-view" id="heap-array-view"></div>
+            </div>
+          </div>
+
+          <!-- Waiting Patients Table -->
+          <div class="glass-card">
+            <div class="card-header">
+              <span class="card-title">📋 Current Waiting Roster</span>
+            </div>
+            <div style="max-height: 280px; overflow-y: auto;">
+              <table class="patient-table">
+                <thead>
+                  <tr>
+                    <th>Heap Idx</th>
+                    <th>Record ID</th>
+                    <th>Full Name</th>
+                    <th>Clinical Urgency</th>
+                    <th>Arrival Sequence</th>
+                  </tr>
+                </thead>
+                <tbody id="queue-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 2: Algorithm Sorting Arena -->
+    <!-- ===================================================================== -->
+    <section class="tab-pane" id="tab-sorting">
+      <div class="grid-sidebar">
+        <!-- Sorting Configuration -->
+        <div class="glass-card">
+          <div class="card-header">
+            <span class="card-title">⚙️ Benchmark Configuration</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sort-generator">Input Distribution Generator</label>
+            <select class="form-select" id="sort-generator">
+              <option value="random">Random (Uniform Permutation)</option>
+              <option value="nearly_sorted">Nearly Sorted (k elements perturbed)</option>
+              <option value="reverse">Reverse Sorted (Adversarial O(n²))</option>
+              <option value="sorted">Already Sorted (Natural Run)</option>
+              <option value="few_unique">Few Unique Severities</option>
+              <option value="er_mix">Realistic ER Mix (5/15/40/40)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sort-size">
+              Input Size (n): <b id="sort-size-val" style="color:var(--primary);">64</b>
+            </label>
+            <input type="range" id="sort-size" min="10" max="300" step="10" value="64" style="width: 100%;">
+          </div>
+          <button class="btn btn-primary" id="run-sorts-btn" style="width: 100%; margin-top: 0.5rem;">
+            ⚡ Run Benchmark Race
+          </button>
+        </div>
+
+        <!-- Results Display -->
+        <div class="glass-card">
+          <div class="card-header">
+            <span class="card-title">🏁 Real-Time Algorithm Execution Metrics</span>
+            <span style="font-size:0.75rem; color:var(--text-muted);">Instrumented via Counter</span>
+          </div>
+          <div id="sort-results-container">
+            <p style="color:var(--text-muted); font-size:0.85rem;">Click "Run Benchmark Race" to evaluate all 5 algorithms side-by-side.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 3: Binary Search & Break-Even -->
+    <!-- ===================================================================== -->
+    <section class="tab-pane" id="tab-search">
+      <div class="grid-sidebar">
+        <div class="glass-card">
+          <div class="card-header">
+            <span class="card-title">🔍 Lookup Settings</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="search-n">Dataset Size (n)</label>
+            <input class="form-input" id="search-n" type="number" min="16" max="1024" value="128">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="search-target-id">Patient Target ID</label>
+            <input class="form-input" id="search-target-id" type="number" placeholder="Leave blank to pick median">
+          </div>
+          <button class="btn btn-primary" id="run-search-btn" style="width: 100%;">
+            Execute Search Comparison
+          </button>
+        </div>
+
+        <div>
+          <div id="search-results">
+            <div class="glass-card">
+              <p style="color:var(--text-muted); font-size:0.85rem;">
+                Execute a search comparison to visualize comparisons and view the Master Theorem break-even derivation.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 4: ER Discrete Simulation -->
+    <!-- ===================================================================== -->
+    <section class="tab-pane" id="tab-simulation">
+      <div class="grid-sidebar">
+        <div class="glass-card">
+          <div class="card-header">
+            <span class="card-title">🏥 Simulation Parameters</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sim-duration">Shift Duration (Minutes)</label>
+            <input class="form-input" id="sim-duration" type="number" value="480">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sim-doctors">Available Doctors</label>
+            <input class="form-input" id="sim-doctors" type="number" min="1" max="10" value="4">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sim-rate">Arrival Rate (λ per min)</label>
+            <input class="form-input" id="sim-rate" type="number" step="0.1" value="0.5">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sim-aging">Aging Threshold (Min to Promotion)</label>
+            <input class="form-input" id="sim-aging" type="number" value="45">
+          </div>
+          <button class="btn btn-primary" id="run-sim-btn" style="width: 100%;">
+            🚀 Run Discrete-Event Simulation
+          </button>
+        </div>
+
+        <div>
+          <div id="sim-results">
+            <div class="glass-card">
+              <p style="color:var(--text-muted); font-size:0.85rem;">
+                Run the simulation to compare Real-Time PriorityQueue vs. Periodic Batch-Sort on clinical wait times.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

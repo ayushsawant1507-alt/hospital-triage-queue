@@ -1,0 +1,11 @@
+strategy,severity,avg_wait_min,max_wait_min,total_treated,throughput_per_hour
+priority_queue,1,130.67,211,125,15.62
+priority_queue,2,106.14,258,125,15.62
+priority_queue,3,131.85,257,125,15.62
+priority_queue,4,136.19,250,125,15.62
+priority_queue,5,0.0,0.0,125,15.62
+batch_sort,1,130.67,211,125,15.62
+batch_sort,2,106.14,258,125,15.62
+batch_sort,3,131.85,257,125,15.62
+batch_sort,4,136.19,250,125,15.62
+batch_sort,5,0.0,0.0,125,15.62
